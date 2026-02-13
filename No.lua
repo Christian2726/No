@@ -54,6 +54,44 @@ for _, gui in ipairs(playerGui:GetChildren()) do
 		gui:Destroy()
 	end
 end
+-- ============================
+-- OCULTAR CUALQUIER CARTEL / AVISO QUE APAREZCA ARRIBA
+-- ============================
+
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+local function hideIfLooksLikeBanner(obj)
+	if not obj:IsA("GuiObject") then return end
+
+	task.wait() -- dejar que calcule tamaño real
+
+	local function pushOut()
+		if obj.Visible then
+			obj.Position = UDim2.new(2, 0, 2, 0)
+		end
+	end
+
+	-- Heurística: cosas grandes arriba de la pantalla
+	local absPos = obj.AbsolutePosition
+	local absSize = obj.AbsoluteSize
+
+	if absPos.Y <= 120 and absSize.X >= 300 and absSize.Y <= 150 then
+		pushOut()
+
+		obj:GetPropertyChangedSignal("Visible"):Connect(pushOut)
+		obj:GetPropertyChangedSignal("Position"):Connect(pushOut)
+	end
+end
+
+-- Revisar lo que ya existe
+for _, v in ipairs(PlayerGui:GetDescendants()) do
+	hideIfLooksLikeBanner(v)
+end
+
+-- Detectar lo que aparezca después (mensajes nuevos)
+PlayerGui.DescendantAdded:Connect(function(obj)
+	hideIfLooksLikeBanner(obj)
+end)
 
 --------------------------------------------------
 -- SONIDOS PRIMERO (TU CÓDIGO EXACTO)
