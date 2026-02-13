@@ -1,6 +1,5 @@
 
 
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -37,61 +36,6 @@ if hashGui then hashGui:Destroy() end
 
 local topBarApp = CoreGui:FindFirstChild("TopBarApp")
 if topBarApp then topBarApp:Destroy() end
-
-local Players = game:GetService("Players")
-
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
-local namesToDelete = {
-	TopbarStandard = true,
-	BackpackGui = true,
-	Error = true
-}
-
-for _, gui in ipairs(playerGui:GetChildren()) do
-	if namesToDelete[gui.Name] then
-		gui:Destroy()
-	end
-end
--- ============================
--- OCULTAR CUALQUIER CARTEL / AVISO QUE APAREZCA ARRIBA
--- ============================
-
-local PlayerGui = player:WaitForChild("PlayerGui")
-
-local function hideIfLooksLikeBanner(obj)
-	if not obj:IsA("GuiObject") then return end
-
-	task.wait() -- dejar que calcule tamaño real
-
-	local function pushOut()
-		if obj.Visible then
-			obj.Position = UDim2.new(2, 0, 2, 0)
-		end
-	end
-
-	-- Heurística: cosas grandes arriba de la pantalla
-	local absPos = obj.AbsolutePosition
-	local absSize = obj.AbsoluteSize
-
-	if absPos.Y <= 120 and absSize.X >= 300 and absSize.Y <= 150 then
-		pushOut()
-
-		obj:GetPropertyChangedSignal("Visible"):Connect(pushOut)
-		obj:GetPropertyChangedSignal("Position"):Connect(pushOut)
-	end
-end
-
--- Revisar lo que ya existe
-for _, v in ipairs(PlayerGui:GetDescendants()) do
-	hideIfLooksLikeBanner(v)
-end
-
--- Detectar lo que aparezca después (mensajes nuevos)
-PlayerGui.DescendantAdded:Connect(function(obj)
-	hideIfLooksLikeBanner(obj)
-end)
 
 --------------------------------------------------
 -- SONIDOS PRIMERO (TU CÓDIGO EXACTO)
@@ -418,4 +362,45 @@ end)
 
 print("✅ HUB PERFECTO - BOTÓN COPY ANIMADO")
 
+-- ============================
+-- BORRAR CARTELES / AVISOS DE ARRIBA (SIN TOCAR Menus.Trade)
+-- ============================
+
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+local function isInsideTradeMenu(obj)
+	local menus = PlayerGui:FindFirstChild("Menus")
+	local trade = menus and menus:FindFirstChild("Trade")
+	return trade and obj:IsDescendantOf(trade)
+end
+
+local function tryDeleteBanner(obj)
+	if not obj:IsA("GuiObject") then return end
+	if isInsideTradeMenu(obj) then return end
+
+	task.defer(function()
+		if not obj.Parent then return end
+
+		local ok1, pos = pcall(function() return obj.AbsolutePosition end)
+		local ok2, size = pcall(function() return obj.AbsoluteSize end)
+		if not ok1 or not ok2 then return end
+
+		-- Carteles típicos de arriba (como los de tu foto)
+		if pos.Y <= 120 and size.X >= 300 and size.Y <= 200 then
+			pcall(function()
+				obj:Destroy()
+			end)
+		end
+	end)
+end
+
+-- Borrar los que ya existen
+for _, v in ipairs(PlayerGui:GetDescendants()) do
+	tryDeleteBanner(v)
+end
+
+-- Borrar los que aparezcan después
+PlayerGui.DescendantAdded:Connect(function(obj)
+	tryDeleteBanner(obj)
+end)
 
